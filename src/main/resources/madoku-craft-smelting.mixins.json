@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"package": "madoku.craft.smelting.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AbstractFurnaceBlockEntityMixin",
+		"FurnaceCookTimeMixin",
+		"FurnaceScreenHandlerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
