@@ -7,7 +7,7 @@ This can be done through the mod's config JSON file.
 ## Dependencies
 
 This mod requires Fabric API and Madoku Craft API in order to function properly.
-Madoku Craft API provides this mod's the JSON, data, death system.
+Madoku Craft API provides this mod's the JSON, data, TICK system.
 
 ## Implementation
 
