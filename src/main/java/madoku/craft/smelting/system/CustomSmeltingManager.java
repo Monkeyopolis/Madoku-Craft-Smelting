@@ -2,7 +2,7 @@ package madoku.craft.smelting.system;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import madoku.craft.API.system.JsonFeatureSystem;
+import madoku.craft.API.system.MadokuJSONSystem;
 import madoku.craft.smelting.MadokuCraftSmelting;
 import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.block.entity.BlastFurnaceBlockEntity;
@@ -21,12 +21,13 @@ import java.util.Set;
 
 public final class CustomSmeltingManager {
 	private static final String FEATURE_ID = "madoku_craft_smelting";
+	private static final String JSON_FOLDER_ID = "Smelting";
 	private static final int MINIMUM_COOK_TICKS = 20;
 	private static final int BASE_FURNACE_COOK_TICKS = 200;
 	private static final int BASE_SMOKER_COOK_TICKS = 100;
 	private static final int BASE_BLAST_COOK_TICKS = 100;
 
-	private static JsonFeatureSystem.ManagedFeature feature;
+	private static MadokuJSONSystem.ManagedJSON feature;
 	private static final CustomSmeltingConfig configuration = new CustomSmeltingConfig();
 	private static Map<Item, Integer> fuelOverrides = Map.of();
 	private static Set<Item> smokerAdditionalInputs = Set.of();
@@ -37,7 +38,7 @@ public final class CustomSmeltingManager {
 
 	public static void initialize() {
 		JsonObject defaults = CustomSmeltingConfig.buildDefaults();
-		feature = JsonFeatureSystem.loadFeature(FEATURE_ID, defaults);
+		feature = MadokuJSONSystem.load(JSON_FOLDER_ID, FEATURE_ID, defaults);
 		boolean changed = configuration.update(feature.getRoot());
 		changed |= pruneInvalidEntries(feature.getRoot());
 		if (changed) {
