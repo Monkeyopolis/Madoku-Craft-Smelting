@@ -45,7 +45,7 @@ public final class CustomSmeltingManager {
 			feature.save();
 		}
 		rebuildRules();
-		MadokuCraftSmelting.LOGGER.info("Smelting system is {} (config at {})",
+		MadokuCraftSmelting.debugInfo("Smelting system is {} (config at {})",
 			configuration.enableFeature ? "enabled" : "disabled",
 			feature.getPath());
 	}
