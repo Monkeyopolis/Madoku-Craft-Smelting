@@ -87,22 +87,14 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 			}
 
 			if (this.recipeType == RecipeType.SMOKING) {
-				return isSmokerCandidate(stack);
+				return CustomSmeltingManager.isSmokerAdditionalInput(stack);
 			}
 
 			if (this.recipeType == RecipeType.BLASTING) {
-				return isBlastCandidate(stack);
+				return CustomSmeltingManager.isBlastAdditionalInput(stack);
 			}
 
 			return false;
-		}
-
-		private static boolean isSmokerCandidate(ItemStack stack) {
-			return CustomSmeltingManager.isSmokerAdditionalInput(stack);
-		}
-
-		private static boolean isBlastCandidate(ItemStack stack) {
-			return CustomSmeltingManager.isBlastAdditionalInput(stack);
 		}
 
 		@SuppressWarnings("unchecked")

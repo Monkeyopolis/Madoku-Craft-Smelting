@@ -33,12 +33,9 @@ public final class CustomSmeltingConfig {
 	private static final double MAX_MULTIPLIER = 2.0;
 	private static final double MIN_FUEL = 0.0;
 	private static final double MAX_FUEL = 72000.0;
+	private static final String VERSION_FIELD = "version";
 
-	public boolean update(JsonObject root) {
-		if (root == null) {
-			return false;
-		}
-
+	public boolean updateSmelting(JsonObject root) {
 		boolean changed = false;
 		enableFeature = JsonHelper.getBoolean(root, "enableFeature", enableFeature);
 		changed |= setBoolean(root, "enableFeature", enableFeature);
@@ -63,52 +60,47 @@ public final class CustomSmeltingConfig {
 		blastFurnaceFuelEfficiencyMultiplier = normalizeMultiplier(JsonHelper.getDouble(root,
 			"blastFurnaceFuelEfficiencyMultiplier", blastFurnaceFuelEfficiencyMultiplier));
 		changed |= setDouble(root, "blastFurnaceFuelEfficiencyMultiplier", blastFurnaceFuelEfficiencyMultiplier);
+		return changed;
+	}
 
-		JsonObject fuelRoot = getFuelRoot(root);
-		if (fuelRoot == null) {
-			Map<String, Double> defaults = buildDefaultFuelItems();
-			JsonObject replacement = new JsonObject();
-			for (Map.Entry<String, Double> entry : defaults.entrySet()) {
-				replacement.addProperty(entry.getKey(), entry.getValue());
-			}
-			root.add("fuelItems", replacement);
-			fuelItems = new LinkedHashMap<>(defaults);
-			changed = true;
-		} else {
-			Map<String, Double> updated = new LinkedHashMap<>();
-			boolean fuelChanged = false;
-			for (Map.Entry<String, JsonElement> entry : fuelRoot.entrySet()) {
-				String normalizedKey = normalizeIdentifier(entry.getKey());
-				if (normalizedKey == null) {
-					fuelChanged = true;
-					continue;
-				}
-
-				double raw = readDouble(entry.getValue(), MIN_FUEL);
-				double normalized = normalizeFuelValue(raw);
-				if (normalized <= 0.0) {
-					fuelChanged = true;
-					continue;
-				}
-
-				updated.put(normalizedKey, normalized);
-				if (!normalizedKey.equals(entry.getKey()) || !isSameNumber(entry.getValue(), normalized)) {
-					fuelChanged = true;
-				}
+	public boolean updateFuel(JsonObject root) {
+		Map<String, Double> updated = new LinkedHashMap<>();
+		boolean changed = false;
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			String key = entry.getKey();
+			if (VERSION_FIELD.equals(key)) {
+				continue;
 			}
 
-			if (fuelChanged) {
-				JsonObject replacement = new JsonObject();
-				for (Map.Entry<String, Double> entry : updated.entrySet()) {
-					replacement.addProperty(entry.getKey(), entry.getValue());
-				}
-				root.add("fuelItems", replacement);
+			String normalizedKey = normalizeIdentifier(key);
+			if (normalizedKey == null) {
+				changed = true;
+				continue;
+			}
+
+			double raw = readDouble(entry.getValue(), MIN_FUEL);
+			double normalized = normalizeFuelValue(raw);
+			if (normalized <= 0.0) {
+				changed = true;
+				continue;
+			}
+
+			updated.put(normalizedKey, normalized);
+			if (!normalizedKey.equals(key) || !isSameNumber(entry.getValue(), normalized)) {
 				changed = true;
 			}
-
-			fuelItems = updated;
 		}
 
+		fuelItems = updated;
+		if (changed) {
+			replaceFuelEntries(root, updated);
+		}
+
+		return changed;
+	}
+
+	public boolean updateFurnaces(JsonObject root) {
+		boolean changed = false;
 		JsonElement smokerElement = root.get("smokerAdditionalInputs");
 		if (!(smokerElement instanceof JsonArray smokerArray)) {
 			List<String> defaults = buildDefaultSmokerAdditionalInputs();
@@ -200,7 +192,7 @@ public final class CustomSmeltingConfig {
 		return changed;
 	}
 
-	public static JsonObject buildDefaults() {
+	public static JsonObject buildSmeltingDefaults() {
 		JsonObject defaults = new JsonObject();
 		defaults.addProperty("enableFeature", true);
 		defaults.addProperty("furnaceSmeltingSpeed", 120.0);
@@ -209,13 +201,19 @@ public final class CustomSmeltingConfig {
 		defaults.addProperty("furnaceFuelEfficiencyMultiplier", 1.0);
 		defaults.addProperty("smokerFuelEfficiencyMultiplier", 1.5);
 		defaults.addProperty("blastFurnaceFuelEfficiencyMultiplier", 1.5);
+		return defaults;
+	}
 
-		JsonObject fuelRoot = new JsonObject();
+	public static JsonObject buildFuelDefaults() {
+		JsonObject defaults = new JsonObject();
 		for (Map.Entry<String, Double> entry : buildDefaultFuelItems().entrySet()) {
-			fuelRoot.addProperty(entry.getKey(), entry.getValue());
+			defaults.addProperty(entry.getKey(), entry.getValue());
 		}
-		defaults.add("fuelItems", fuelRoot);
+		return defaults;
+	}
 
+	public static JsonObject buildFurnacesDefaults() {
+		JsonObject defaults = new JsonObject();
 		JsonArray smokerInputs = new JsonArray();
 		for (String value : buildDefaultSmokerAdditionalInputs()) {
 			smokerInputs.add(value);
@@ -227,7 +225,6 @@ public final class CustomSmeltingConfig {
 			blastInputs.add(value);
 		}
 		defaults.add("blastFurnaceAdditionalInputs", blastInputs);
-
 		return defaults;
 	}
 
@@ -432,12 +429,19 @@ public final class CustomSmeltingConfig {
 		return Math.min(MAX_MULTIPLIER, Math.max(MIN_MULTIPLIER, rounded));
 	}
 
-	private static JsonObject getFuelRoot(JsonObject root) {
-		JsonElement element = root.get("fuelItems");
-		if (element instanceof JsonObject object) {
-			return object;
+	private static void replaceFuelEntries(JsonObject root, Map<String, Double> entries) {
+		List<String> keysToRemove = new ArrayList<>();
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			if (!VERSION_FIELD.equals(entry.getKey())) {
+				keysToRemove.add(entry.getKey());
+			}
 		}
-		return null;
+		for (String key : keysToRemove) {
+			root.remove(key);
+		}
+		for (Map.Entry<String, Double> entry : entries.entrySet()) {
+			root.addProperty(entry.getKey(), entry.getValue());
+		}
 	}
 
 	private static String normalizeIdentifier(String value) {

@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class MadokuCraftSmelting implements ModInitializer {
 	public static final String MOD_ID = "madoku-craft-smelting";
-	public static final String DEBUG_SOURCE = "Smelting";
+	public static final String DEBUG_SOURCE = "smelting";
 
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.

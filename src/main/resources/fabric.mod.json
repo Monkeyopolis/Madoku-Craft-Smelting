@@ -17,17 +17,10 @@
 	"entrypoints": {
 		"main": [
 			"madoku.craft.smelting.MadokuCraftSmelting"
-		],
-		"client": [
-			"madoku.craft.smelting.MadokuCraftSmeltingClient"
 		]
 	},
 	"mixins": [
-		"madoku-craft-smelting.mixins.json",
-		{
-			"config": "madoku-craft-smelting.client.mixins.json",
-			"environment": "client"
-		}
+		"madoku-craft-smelting.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",

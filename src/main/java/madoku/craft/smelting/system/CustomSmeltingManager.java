@@ -1,6 +1,7 @@
 package madoku.craft.smelting.system;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import madoku.craft.API.system.MadokuJSONSystem;
 import madoku.craft.smelting.MadokuCraftSmelting;
@@ -20,14 +21,18 @@ import java.util.Map;
 import java.util.Set;
 
 public final class CustomSmeltingManager {
-	private static final String FEATURE_ID = "madoku_craft_smelting";
-	private static final String JSON_FOLDER_ID = "Smelting";
+	private static final String SMELTING_SYSTEM_ID = "smelting";
+	private static final String FUEL_SYSTEM_ID = "fuel";
+	private static final String FURNACES_SYSTEM_ID = "furnaces";
+	private static final String JSON_FOLDER_ID = "smelting";
 	private static final int MINIMUM_COOK_TICKS = 20;
 	private static final int BASE_FURNACE_COOK_TICKS = 200;
 	private static final int BASE_SMOKER_COOK_TICKS = 100;
 	private static final int BASE_BLAST_COOK_TICKS = 100;
 
-	private static MadokuJSONSystem.ManagedJSON feature;
+	private static MadokuJSONSystem.ManagedJSON smeltingFeature;
+	private static MadokuJSONSystem.ManagedJSON fuelFeature;
+	private static MadokuJSONSystem.ManagedJSON furnacesFeature;
 	private static final CustomSmeltingConfig configuration = new CustomSmeltingConfig();
 	private static Map<Item, Integer> fuelOverrides = Map.of();
 	private static Set<Item> smokerAdditionalInputs = Set.of();
@@ -37,17 +42,33 @@ public final class CustomSmeltingManager {
 	}
 
 	public static void initialize() {
-		JsonObject defaults = CustomSmeltingConfig.buildDefaults();
-		feature = MadokuJSONSystem.load(JSON_FOLDER_ID, FEATURE_ID, defaults);
-		boolean changed = configuration.update(feature.getRoot());
-		changed |= pruneInvalidEntries(feature.getRoot());
-		if (changed) {
-			feature.save();
+		smeltingFeature = MadokuJSONSystem.load(JSON_FOLDER_ID, SMELTING_SYSTEM_ID, CustomSmeltingConfig.buildSmeltingDefaults());
+		fuelFeature = MadokuJSONSystem.load(JSON_FOLDER_ID, FUEL_SYSTEM_ID, CustomSmeltingConfig.buildFuelDefaults());
+		furnacesFeature = MadokuJSONSystem.load(JSON_FOLDER_ID, FURNACES_SYSTEM_ID, CustomSmeltingConfig.buildFurnacesDefaults());
+
+		boolean smeltingChanged = configuration.updateSmelting(smeltingFeature.getRoot());
+		if (smeltingChanged) {
+			smeltingFeature.save();
 		}
+
+		boolean fuelChanged = configuration.updateFuel(fuelFeature.getRoot());
+		fuelChanged |= pruneInvalidFuelEntries(fuelFeature.getRoot());
+		if (fuelChanged) {
+			fuelFeature.save();
+		}
+
+		boolean furnacesChanged = configuration.updateFurnaces(furnacesFeature.getRoot());
+		furnacesChanged |= pruneInvalidFurnaceEntries(furnacesFeature.getRoot());
+		if (furnacesChanged) {
+			furnacesFeature.save();
+		}
+
 		rebuildRules();
-		MadokuCraftSmelting.debugInfo("Smelting system is {} (config at {})",
+		MadokuCraftSmelting.debugInfo("Smelting system is {} (configs at {}, {}, {})",
 			configuration.enableFeature ? "enabled" : "disabled",
-			feature.getPath());
+			smeltingFeature.getPath(),
+			fuelFeature.getPath(),
+			furnacesFeature.getPath());
 	}
 
 	public static boolean isEnabled() {
@@ -108,12 +129,7 @@ public final class CustomSmeltingManager {
 	}
 
 	private static void rebuildRules() {
-		Map<String, Double> entries = configuration.fuelItems;
-		if (entries == null) {
-			entries = CustomSmeltingConfig.buildDefaultFuelItems();
-			configuration.fuelItems = entries;
-		}
-		fuelOverrides = buildOverrides(entries);
+		fuelOverrides = buildOverrides(configuration.fuelItems);
 		smokerAdditionalInputs = buildItemSet(configuration.smokerAdditionalInputs);
 		blastAdditionalInputs = buildItemSet(configuration.blastFurnaceAdditionalInputs);
 	}
@@ -136,9 +152,6 @@ public final class CustomSmeltingManager {
 
 	private static Set<Item> buildItemSet(List<String> entries) {
 		Set<Item> items = new LinkedHashSet<>();
-		if (entries == null) {
-			return Set.of();
-		}
 		for (String entry : entries) {
 			Item item = resolveItem(entry);
 			if (item != null) {
@@ -148,12 +161,7 @@ public final class CustomSmeltingManager {
 		return Set.copyOf(items);
 	}
 
-	private static boolean pruneInvalidEntries(JsonObject root) {
-		if (root == null) {
-			return false;
-		}
-
-		boolean changed = false;
+	private static boolean pruneInvalidFuelEntries(JsonObject root) {
 		Map<String, Double> cleanedFuel = new LinkedHashMap<>();
 		boolean fuelChanged = false;
 		for (Map.Entry<String, Double> entry : configuration.fuelItems.entrySet()) {
@@ -164,16 +172,20 @@ public final class CustomSmeltingManager {
 			cleanedFuel.put(entry.getKey(), entry.getValue());
 		}
 
-		if (fuelChanged) {
-			JsonObject replacement = new JsonObject();
-			for (Map.Entry<String, Double> entry : cleanedFuel.entrySet()) {
-				replacement.addProperty(entry.getKey(), entry.getValue());
-			}
-			root.add("fuelItems", replacement);
-			configuration.fuelItems = cleanedFuel;
-			changed = true;
+		if (!fuelChanged) {
+			return false;
 		}
 
+		clearNonVersionEntries(root);
+		for (Map.Entry<String, Double> entry : cleanedFuel.entrySet()) {
+			root.addProperty(entry.getKey(), entry.getValue());
+		}
+		configuration.fuelItems = cleanedFuel;
+		return true;
+	}
+
+	private static boolean pruneInvalidFurnaceEntries(JsonObject root) {
+		boolean changed = false;
 		List<String> cleanedSmoker = pruneAdditionalInputs(root, "smokerAdditionalInputs",
 			configuration.smokerAdditionalInputs);
 		if (!cleanedSmoker.equals(configuration.smokerAdditionalInputs)) {
@@ -191,12 +203,21 @@ public final class CustomSmeltingManager {
 		return changed;
 	}
 
+	private static void clearNonVersionEntries(JsonObject root) {
+		List<String> keys = new ArrayList<>();
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			if (!"version".equals(entry.getKey())) {
+				keys.add(entry.getKey());
+			}
+		}
+		for (String key : keys) {
+			root.remove(key);
+		}
+	}
+
 	private static List<String> pruneAdditionalInputs(JsonObject root, String key, List<String> values) {
 		List<String> cleaned = new ArrayList<>();
 		boolean listChanged = false;
-		if (values == null) {
-			return cleaned;
-		}
 
 		for (String value : values) {
 			if (resolveItem(value) == null) {
@@ -239,13 +260,6 @@ public final class CustomSmeltingManager {
 		}
 
 		return Registries.ITEM.get(itemId);
-	}
-
-	private static int toTicks(Double value) {
-		if (value == null || !Double.isFinite(value) || value <= 0.0) {
-			return 0;
-		}
-		return Math.max(1, (int) Math.round(value));
 	}
 
 	private static int toTicks(double value) {
