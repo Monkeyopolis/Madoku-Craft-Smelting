@@ -1,312 +1,29 @@
 package madoku.craft.smelting.system;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public final class CustomSmeltingConfig {
 	public boolean enableFeature = true;
-	public Map<String, Double> fuelItems = new LinkedHashMap<>(buildDefaultFuelItems());
-	public double furnaceSmeltingSpeed = 120.0;
-	public double smokerSmeltingSpeed = 80.0;
-	public double blastFurnaceSpeed = 80.0;
-	public double furnaceFuelEfficiencyMultiplier = 1.0;
-	public double smokerFuelEfficiencyMultiplier = 1.5;
-	public double blastFurnaceFuelEfficiencyMultiplier = 1.5;
-	public List<String> smokerAdditionalInputs = new ArrayList<>(buildDefaultSmokerAdditionalInputs());
-	public List<String> blastFurnaceAdditionalInputs = new ArrayList<>(buildDefaultBlastAdditionalInputs());
 
-	private static final double TIME_INCREMENT = 0.125;
-	private static final double MIN_TIME = 20.0;
-	private static final double MAX_TIME = 1200.0;
-	private static final double MIN_MULTIPLIER = 0.5;
-	private static final double MAX_MULTIPLIER = 2.0;
-	private static final double MIN_FUEL = 0.0;
-	private static final double MAX_FUEL = 72000.0;
-	private static final String VERSION_FIELD = "version";
+	public void resetToDefaults() {
+		enableFeature = true;
+	}
 
 	public boolean updateSmelting(JsonObject root) {
 		boolean changed = false;
-		enableFeature = JsonHelper.getBoolean(root, "enableFeature", enableFeature);
+		enableFeature = readBoolean(root, "enableFeature", enableFeature);
 		changed |= setBoolean(root, "enableFeature", enableFeature);
-
-		furnaceSmeltingSpeed = normalizeTime(JsonHelper.getDouble(root, "furnaceSmeltingSpeed", furnaceSmeltingSpeed));
-		changed |= setDouble(root, "furnaceSmeltingSpeed", furnaceSmeltingSpeed);
-
-		smokerSmeltingSpeed = normalizeTime(JsonHelper.getDouble(root, "smokerSmeltingSpeed", smokerSmeltingSpeed));
-		changed |= setDouble(root, "smokerSmeltingSpeed", smokerSmeltingSpeed);
-
-		blastFurnaceSpeed = normalizeTime(JsonHelper.getDouble(root, "blastFurnaceSpeed", blastFurnaceSpeed));
-		changed |= setDouble(root, "blastFurnaceSpeed", blastFurnaceSpeed);
-
-		furnaceFuelEfficiencyMultiplier = normalizeMultiplier(JsonHelper.getDouble(root,
-			"furnaceFuelEfficiencyMultiplier", furnaceFuelEfficiencyMultiplier));
-		changed |= setDouble(root, "furnaceFuelEfficiencyMultiplier", furnaceFuelEfficiencyMultiplier);
-
-		smokerFuelEfficiencyMultiplier = normalizeMultiplier(JsonHelper.getDouble(root,
-			"smokerFuelEfficiencyMultiplier", smokerFuelEfficiencyMultiplier));
-		changed |= setDouble(root, "smokerFuelEfficiencyMultiplier", smokerFuelEfficiencyMultiplier);
-
-		blastFurnaceFuelEfficiencyMultiplier = normalizeMultiplier(JsonHelper.getDouble(root,
-			"blastFurnaceFuelEfficiencyMultiplier", blastFurnaceFuelEfficiencyMultiplier));
-		changed |= setDouble(root, "blastFurnaceFuelEfficiencyMultiplier", blastFurnaceFuelEfficiencyMultiplier);
-		return changed;
-	}
-
-	public boolean updateFuel(JsonObject root) {
-		Map<String, Double> updated = new LinkedHashMap<>();
-		boolean changed = false;
-		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-			String key = entry.getKey();
-			if (VERSION_FIELD.equals(key)) {
-				continue;
-			}
-
-			String normalizedKey = normalizeIdentifier(key);
-			if (normalizedKey == null) {
-				changed = true;
-				continue;
-			}
-
-			double raw = readDouble(entry.getValue(), MIN_FUEL);
-			double normalized = normalizeFuelValue(raw);
-			if (normalized <= 0.0) {
-				changed = true;
-				continue;
-			}
-
-			updated.put(normalizedKey, normalized);
-			if (!normalizedKey.equals(key) || !isSameNumber(entry.getValue(), normalized)) {
-				changed = true;
-			}
-		}
-
-		fuelItems = updated;
-		if (changed) {
-			replaceFuelEntries(root, updated);
-		}
-
-		return changed;
-	}
-
-	public boolean updateFurnaces(JsonObject root) {
-		boolean changed = false;
-		JsonElement smokerElement = root.get("smokerAdditionalInputs");
-		if (!(smokerElement instanceof JsonArray smokerArray)) {
-			List<String> defaults = buildDefaultSmokerAdditionalInputs();
-			JsonArray replacement = new JsonArray();
-			for (String value : defaults) {
-				replacement.add(value);
-			}
-			root.add("smokerAdditionalInputs", replacement);
-			smokerAdditionalInputs = new ArrayList<>(defaults);
-			changed = true;
-		} else {
-			List<String> updated = new ArrayList<>();
-			Set<String> seen = new LinkedHashSet<>();
-			boolean listChanged = false;
-			for (JsonElement element : smokerArray) {
-				if (!(element instanceof JsonPrimitive primitive) || !primitive.isString()) {
-					listChanged = true;
-					continue;
-				}
-				String normalized = normalizeIdentifier(primitive.getAsString());
-				if (normalized == null) {
-					listChanged = true;
-					continue;
-				}
-				if (!normalized.equals(primitive.getAsString())) {
-					listChanged = true;
-				}
-				if (!seen.add(normalized)) {
-					listChanged = true;
-				}
-			}
-
-			updated.addAll(seen);
-			if (listChanged) {
-				JsonArray replacement = new JsonArray();
-				for (String value : updated) {
-					replacement.add(value);
-				}
-				root.add("smokerAdditionalInputs", replacement);
-				changed = true;
-			}
-			smokerAdditionalInputs = updated;
-		}
-
-		JsonElement blastElement = root.get("blastFurnaceAdditionalInputs");
-		if (!(blastElement instanceof JsonArray blastArray)) {
-			List<String> defaults = buildDefaultBlastAdditionalInputs();
-			JsonArray replacement = new JsonArray();
-			for (String value : defaults) {
-				replacement.add(value);
-			}
-			root.add("blastFurnaceAdditionalInputs", replacement);
-			blastFurnaceAdditionalInputs = new ArrayList<>(defaults);
-			changed = true;
-		} else {
-			List<String> updated = new ArrayList<>();
-			Set<String> seen = new LinkedHashSet<>();
-			boolean listChanged = false;
-			for (JsonElement element : blastArray) {
-				if (!(element instanceof JsonPrimitive primitive) || !primitive.isString()) {
-					listChanged = true;
-					continue;
-				}
-				String normalized = normalizeIdentifier(primitive.getAsString());
-				if (normalized == null) {
-					listChanged = true;
-					continue;
-				}
-				if (!normalized.equals(primitive.getAsString())) {
-					listChanged = true;
-				}
-				if (!seen.add(normalized)) {
-					listChanged = true;
-				}
-			}
-
-			updated.addAll(seen);
-			if (listChanged) {
-				JsonArray replacement = new JsonArray();
-				for (String value : updated) {
-					replacement.add(value);
-				}
-				root.add("blastFurnaceAdditionalInputs", replacement);
-				changed = true;
-			}
-			blastFurnaceAdditionalInputs = updated;
-		}
-
 		return changed;
 	}
 
 	public static JsonObject buildSmeltingDefaults() {
 		JsonObject defaults = new JsonObject();
 		defaults.addProperty("enableFeature", true);
-		defaults.addProperty("furnaceSmeltingSpeed", 120.0);
-		defaults.addProperty("smokerSmeltingSpeed", 80.0);
-		defaults.addProperty("blastFurnaceSpeed", 80.0);
-		defaults.addProperty("furnaceFuelEfficiencyMultiplier", 1.0);
-		defaults.addProperty("smokerFuelEfficiencyMultiplier", 1.5);
-		defaults.addProperty("blastFurnaceFuelEfficiencyMultiplier", 1.5);
-		return defaults;
-	}
-
-	public static JsonObject buildFuelDefaults() {
-		JsonObject defaults = new JsonObject();
-		for (Map.Entry<String, Double> entry : buildDefaultFuelItems().entrySet()) {
-			defaults.addProperty(entry.getKey(), entry.getValue());
-		}
-		return defaults;
-	}
-
-	public static JsonObject buildFurnacesDefaults() {
-		JsonObject defaults = new JsonObject();
-		JsonArray smokerInputs = new JsonArray();
-		for (String value : buildDefaultSmokerAdditionalInputs()) {
-			smokerInputs.add(value);
-		}
-		defaults.add("smokerAdditionalInputs", smokerInputs);
-
-		JsonArray blastInputs = new JsonArray();
-		for (String value : buildDefaultBlastAdditionalInputs()) {
-			blastInputs.add(value);
-		}
-		defaults.add("blastFurnaceAdditionalInputs", blastInputs);
-		return defaults;
-	}
-
-	public static Map<String, Double> buildDefaultFuelItems() {
-		Map<String, Double> defaults = new LinkedHashMap<>();
-		defaults.put("minecraft:lava_bucket", 51200.0);
-		defaults.put("minecraft:coal_block", 19200.0);
-		defaults.put("minecraft:magma_block", 12800.0);
-		defaults.put("minecraft:dried_kelp_block", 4800.0);
-		defaults.put("minecraft:blaze_rod", 3600.0);
-		defaults.put("minecraft:coal", 2400.0);
-		defaults.put("minecraft:charcoal", 1600.0);
-		defaults.put("minecraft:mangrove_roots", 800.0);
-		defaults.put("minecraft:muddy_mangrove_roots", 800.0);
-		defaults.put("minecraft:crimson_stem", 800.0);
-		defaults.put("minecraft:warped_stem", 800.0);
-		defaults.put("minecraft:stripped_crimson_stem", 800.0);
-		defaults.put("minecraft:stripped_warped_stem", 800.0);
-		defaults.put("minecraft:oak_log", 600.0);
-		defaults.put("minecraft:spruce_log", 600.0);
-		defaults.put("minecraft:birch_log", 600.0);
-		defaults.put("minecraft:jungle_log", 600.0);
-		defaults.put("minecraft:acacia_log", 600.0);
-		defaults.put("minecraft:cherry_log", 600.0);
-		defaults.put("minecraft:dark_oak_log", 600.0);
-		defaults.put("minecraft:mangrove_log", 600.0);
-		defaults.put("minecraft:pale_oak_log", 600.0);
-		defaults.put("minecraft:stripped_oak_log", 600.0);
-		defaults.put("minecraft:stripped_spruce_log", 600.0);
-		defaults.put("minecraft:stripped_birch_log", 600.0);
-		defaults.put("minecraft:stripped_jungle_log", 600.0);
-		defaults.put("minecraft:stripped_acacia_log", 600.0);
-		defaults.put("minecraft:stripped_cherry_log", 600.0);
-		defaults.put("minecraft:stripped_dark_oak_log", 600.0);
-		defaults.put("minecraft:stripped_mangrove_log", 600.0);
-		defaults.put("minecraft:stripped_pale_oak_log", 600.0);
-		defaults.put("minecraft:oak_wood", 600.0);
-		defaults.put("minecraft:spruce_wood", 600.0);
-		defaults.put("minecraft:birch_wood", 600.0);
-		defaults.put("minecraft:jungle_wood", 600.0);
-		defaults.put("minecraft:acacia_wood", 600.0);
-		defaults.put("minecraft:cherry_wood", 600.0);
-		defaults.put("minecraft:pale_oak_wood", 600.0);
-		defaults.put("minecraft:dark_oak_wood", 600.0);
-		defaults.put("minecraft:mangrove_wood", 600.0);
-		defaults.put("minecraft:stripped_oak_wood", 600.0);
-		defaults.put("minecraft:stripped_spruce_wood", 600.0);
-		defaults.put("minecraft:stripped_birch_wood", 600.0);
-		defaults.put("minecraft:stripped_jungle_wood", 600.0);
-		defaults.put("minecraft:stripped_acacia_wood", 600.0);
-		defaults.put("minecraft:stripped_cherry_wood", 600.0);
-		defaults.put("minecraft:stripped_pale_oak_wood", 600.0);
-		defaults.put("minecraft:stripped_dark_oak_wood", 600.0);
-		defaults.put("minecraft:stripped_mangrove_wood", 600.0);
-		defaults.put("minecraft:stripped_bamboo_block", 450.0);
-		defaults.put("minecraft:bamboo_block", 450.0);
-		defaults.put("minecraft:crimson_planks", 400.0);
-		defaults.put("minecraft:warped_planks", 400.0);
-		defaults.put("minecraft:oak_planks", 300.0);
-		defaults.put("minecraft:spruce_planks", 300.0);
-		defaults.put("minecraft:birch_planks", 300.0);
-		defaults.put("minecraft:jungle_planks", 300.0);
-		defaults.put("minecraft:acacia_planks", 300.0);
-		defaults.put("minecraft:cherry_planks", 300.0);
-		defaults.put("minecraft:dark_oak_planks", 300.0);
-		defaults.put("minecraft:mangrove_planks", 300.0);
-		defaults.put("minecraft:bamboo_planks", 300.0);
-		defaults.put("minecraft:pale_oak_planks", 300.0);
-		defaults.put("minecraft:leaf_litter", 200.0);
-		defaults.put("minecraft:crimson_fungus", 200.0);
-		defaults.put("minecraft:warped_fungus", 200.0);
-		defaults.put("minecraft:oak_sapling", 150.0);
-		defaults.put("minecraft:spruce_sapling", 150.0);
-		defaults.put("minecraft:birch_sapling", 150.0);
-		defaults.put("minecraft:jungle_sapling", 150.0);
-		defaults.put("minecraft:acacia_sapling", 150.0);
-		defaults.put("minecraft:dark_oak_sapling", 150.0);
-		defaults.put("minecraft:mangrove_propagule", 150.0);
-		defaults.put("minecraft:cherry_sapling", 150.0);
-		defaults.put("minecraft:pale_oak_sapling", 150.0);
-		defaults.put("minecraft:stick", 100.0);
-		defaults.put("minecraft:bamboo", 50.0);
 		return defaults;
 	}
 
@@ -402,92 +119,18 @@ public final class CustomSmeltingConfig {
 		return defaults;
 	}
 
-	private static double normalizeFuelValue(double value) {
-		if (!Double.isFinite(value)) {
-			return MIN_FUEL;
-		}
-		double clamped = Math.min(MAX_FUEL, Math.max(MIN_FUEL, value));
-		double rounded = Math.round(clamped / TIME_INCREMENT) * TIME_INCREMENT;
-		return Math.min(MAX_FUEL, Math.max(MIN_FUEL, rounded));
-	}
-
-	private static double normalizeTime(double value) {
-		if (!Double.isFinite(value)) {
-			return MIN_TIME;
-		}
-		double clamped = Math.min(MAX_TIME, Math.max(MIN_TIME, value));
-		double rounded = Math.round(clamped / TIME_INCREMENT) * TIME_INCREMENT;
-		return Math.min(MAX_TIME, Math.max(MIN_TIME, rounded));
-	}
-
-	private static double normalizeMultiplier(double value) {
-		if (!Double.isFinite(value)) {
-			return MIN_MULTIPLIER;
-		}
-		double clamped = Math.min(MAX_MULTIPLIER, Math.max(MIN_MULTIPLIER, value));
-		double rounded = Math.round(clamped / TIME_INCREMENT) * TIME_INCREMENT;
-		return Math.min(MAX_MULTIPLIER, Math.max(MIN_MULTIPLIER, rounded));
-	}
-
-	private static void replaceFuelEntries(JsonObject root, Map<String, Double> entries) {
-		List<String> keysToRemove = new ArrayList<>();
-		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-			if (!VERSION_FIELD.equals(entry.getKey())) {
-				keysToRemove.add(entry.getKey());
-			}
-		}
-		for (String key : keysToRemove) {
-			root.remove(key);
-		}
-		for (Map.Entry<String, Double> entry : entries.entrySet()) {
-			root.addProperty(entry.getKey(), entry.getValue());
-		}
-	}
-
-	private static String normalizeIdentifier(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		if (trimmed.isEmpty() || trimmed.charAt(0) == '#') {
-			return null;
-		}
-		Identifier identifier = Identifier.tryParse(trimmed);
-		if (identifier == null) {
-			return null;
-		}
-		return identifier.toString();
-	}
-
-	private static double readDouble(JsonElement element, double fallback) {
-		if (element instanceof JsonPrimitive primitive && primitive.isNumber()) {
-			return primitive.getAsDouble();
+	private static boolean readBoolean(JsonObject root, String key, boolean fallback) {
+		JsonElement element = root.get(key);
+		if (element instanceof JsonPrimitive primitive && primitive.isBoolean()) {
+			return primitive.getAsBoolean();
 		}
 		return fallback;
-	}
-
-	private static boolean isSameNumber(JsonElement element, double value) {
-		if (element instanceof JsonPrimitive primitive && primitive.isNumber()) {
-			return Double.compare(primitive.getAsDouble(), value) == 0;
-		}
-		return false;
 	}
 
 	private static boolean setBoolean(JsonObject root, String key, boolean value) {
 		JsonElement element = root.get(key);
 		if (element instanceof JsonPrimitive primitive && primitive.isBoolean()) {
 			if (primitive.getAsBoolean() == value) {
-				return false;
-			}
-		}
-		root.addProperty(key, value);
-		return true;
-	}
-
-	private static boolean setDouble(JsonObject root, String key, double value) {
-		JsonElement element = root.get(key);
-		if (element instanceof JsonPrimitive primitive && primitive.isNumber()) {
-			if (Double.compare(primitive.getAsDouble(), value) == 0) {
 				return false;
 			}
 		}

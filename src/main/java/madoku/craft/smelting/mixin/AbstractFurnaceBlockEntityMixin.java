@@ -1,17 +1,17 @@
 package madoku.craft.smelting.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
 import madoku.craft.smelting.system.CustomSmeltingManager;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.AbstractCookingRecipe;
-import net.minecraft.recipe.RecipeEntry;
-import net.minecraft.recipe.RecipeType;
-import net.minecraft.recipe.ServerRecipeManager;
-import net.minecraft.recipe.input.SingleStackRecipeInput;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -21,57 +21,57 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
+
 @Mixin(AbstractFurnaceBlockEntity.class)
 public abstract class AbstractFurnaceBlockEntityMixin {
 	@Shadow
 	@Final
 	@Mutable
-	private ServerRecipeManager.MatchGetter<SingleStackRecipeInput, ? extends AbstractCookingRecipe> matchGetter;
+	private RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
 
 	@Inject(method = "<init>", at = @At("TAIL"))
-	private void madokuSmelting$wrapMatchGetter(
+	private void madokuSmelting$wrapQuickCheck(
 		BlockEntityType<?> blockEntityType,
 		BlockPos pos,
 		BlockState state,
 		RecipeType<? extends AbstractCookingRecipe> recipeType,
 		CallbackInfo ci
 	) {
-		if (!shouldWrap(recipeType)) {
+		if (!CustomSmeltingManager.shouldWrapRecipeType(recipeType)) {
 			return;
 		}
 
-		ServerRecipeManager.MatchGetter<SingleStackRecipeInput, ? extends AbstractCookingRecipe> original = this.matchGetter;
-		this.matchGetter = new FurnaceFallbackMatchGetter(original, recipeType);
+		RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> original = this.quickCheck;
+		this.quickCheck = new FurnaceFallbackCachedCheck(original, blockEntityType, recipeType);
 	}
 
-	private boolean shouldWrap(RecipeType<? extends AbstractCookingRecipe> recipeType) {
-		return recipeType == RecipeType.SMOKING || recipeType == RecipeType.BLASTING;
-	}
-
-	private static final class FurnaceFallbackMatchGetter implements ServerRecipeManager.MatchGetter<SingleStackRecipeInput, AbstractCookingRecipe> {
-		private final ServerRecipeManager.MatchGetter<SingleStackRecipeInput, ? extends AbstractCookingRecipe> delegate;
+	private static final class FurnaceFallbackCachedCheck implements RecipeManager.CachedCheck<SingleRecipeInput, AbstractCookingRecipe> {
+		private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> delegate;
+		private final BlockEntityType<?> blockEntityType;
 		private final RecipeType<? extends AbstractCookingRecipe> recipeType;
 
-		private FurnaceFallbackMatchGetter(
-			ServerRecipeManager.MatchGetter<SingleStackRecipeInput, ? extends AbstractCookingRecipe> delegate,
+		private FurnaceFallbackCachedCheck(
+			RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> delegate,
+			BlockEntityType<?> blockEntityType,
 			RecipeType<? extends AbstractCookingRecipe> recipeType
 		) {
 			this.delegate = delegate;
+			this.blockEntityType = blockEntityType;
 			this.recipeType = recipeType;
 		}
 
 		@Override
-		public Optional<RecipeEntry<AbstractCookingRecipe>> getFirstMatch(SingleStackRecipeInput input, ServerWorld world) {
-			Optional<? extends RecipeEntry<? extends AbstractCookingRecipe>> original = this.delegate.getFirstMatch(input, world);
+		public Optional<RecipeHolder<AbstractCookingRecipe>> getRecipeFor(SingleRecipeInput input, ServerLevel world) {
+			Optional<? extends RecipeHolder<? extends AbstractCookingRecipe>> original = this.delegate.getRecipeFor(input, world);
 			if (original.isPresent()) {
 				return Optional.of(cast(original.get()));
 			}
 
 			ItemStack stack = input.item();
 			if (shouldFallback(stack)) {
-				return world.getRecipeManager()
-					.getFirstMatch(RecipeType.SMELTING, input, world)
-					.map(FurnaceFallbackMatchGetter::cast);
+				return world.recipeAccess()
+					.getRecipeFor(RecipeType.SMELTING, input, world)
+					.map(FurnaceFallbackCachedCheck::cast);
 			}
 
 			return Optional.empty();
@@ -86,20 +86,12 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 				return false;
 			}
 
-			if (this.recipeType == RecipeType.SMOKING) {
-				return CustomSmeltingManager.isSmokerAdditionalInput(stack);
-			}
-
-			if (this.recipeType == RecipeType.BLASTING) {
-				return CustomSmeltingManager.isBlastAdditionalInput(stack);
-			}
-
-			return false;
+			return CustomSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack);
 		}
 
 		@SuppressWarnings("unchecked")
-		private static RecipeEntry<AbstractCookingRecipe> cast(RecipeEntry<?> entry) {
-			return (RecipeEntry<AbstractCookingRecipe>) entry;
+		private static RecipeHolder<AbstractCookingRecipe> cast(RecipeHolder<?> holder) {
+			return (RecipeHolder<AbstractCookingRecipe>) holder;
 		}
 	}
 }

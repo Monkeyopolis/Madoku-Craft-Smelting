@@ -1,17 +1,16 @@
 ## Madoku Craft: Smelting
 
-Madoku Craft: Smelting is a configurable smelting system that can be tinkered with.
-This is perfect for users that love to customize the game to their needs.
-This can be done through the MOD's config JSON file.
+Madoku Craft: Smelting is a configurable smelting system.
+It allows users to adjust smelting speed and fuel efficiency.
+The system also allows for furnaces to accept additional inputs.
 
 ## Dependencies
 
-This MOD requires Fabric API and Madoku Craft API in order to function properly.
-This MOD uses Madoku Craft API's JSON and Debug systems.
+- Fabric API
+- Madoku Craft API
 
 ## Implementation
 
 This MOD by default increases the smelting speed for all furnaces.
 Smokers and Blast Furnaces are now more fuel efficient.
-Some fuel items were added, adjusted and removed.
-You can customize most of these features via the CONFIG file.
+You can customize these features in the CONFIG files.
