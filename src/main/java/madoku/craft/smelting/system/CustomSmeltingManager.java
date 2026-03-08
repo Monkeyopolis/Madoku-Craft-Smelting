@@ -11,8 +11,8 @@ import madoku.craft.smelting.mixin.AbstractFurnaceServerTickInvoker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
@@ -291,9 +291,9 @@ public final class CustomSmeltingManager {
 		if (server == null || levelId == null || levelId.isBlank()) {
 			return null;
 		}
-		Identifier location = Identifier.tryParse(levelId);
+		ResourceLocation location = ResourceLocation.tryParse(levelId);
 		if (location == null) {
-			location = Identifier.tryParse(MadokuScheduler.normalizeLevelIdentifier(levelId));
+			location = ResourceLocation.tryParse(MadokuScheduler.normalizeLevelIdentifier(levelId));
 		}
 		if (location == null) {
 			return null;
@@ -576,7 +576,7 @@ public final class CustomSmeltingManager {
 	}
 
 	private static String resolveBlockId(String value) {
-		Identifier id = Identifier.tryParse(value == null ? "" : value.trim());
+		ResourceLocation id = ResourceLocation.tryParse(value == null ? "" : value.trim());
 		if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
 			return null;
 		}
@@ -584,7 +584,7 @@ public final class CustomSmeltingManager {
 	}
 
 	private static String resolveBlockEntityTypeId(String value) {
-		Identifier id = Identifier.tryParse(value == null ? "" : value.trim());
+		ResourceLocation id = ResourceLocation.tryParse(value == null ? "" : value.trim());
 		if (id == null || !BuiltInRegistries.BLOCK_ENTITY_TYPE.containsKey(id)) {
 			return null;
 		}
@@ -592,7 +592,7 @@ public final class CustomSmeltingManager {
 	}
 
 	private static String resolveRecipeTypeId(String value) {
-		Identifier id = Identifier.tryParse(value == null ? "" : value.trim());
+		ResourceLocation id = ResourceLocation.tryParse(value == null ? "" : value.trim());
 		if (id == null || !BuiltInRegistries.RECIPE_TYPE.containsKey(id)) {
 			return null;
 		}
@@ -600,7 +600,7 @@ public final class CustomSmeltingManager {
 	}
 
 	private static String resolveItemId(String value) {
-		Identifier id = Identifier.tryParse(value == null ? "" : value.trim());
+		ResourceLocation id = ResourceLocation.tryParse(value == null ? "" : value.trim());
 		if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
 			return null;
 		}
@@ -661,33 +661,33 @@ public final class CustomSmeltingManager {
 		if (key == null || key.isBlank()) {
 			return null;
 		}
-		Identifier recipeTypeId = Identifier.tryParse(key);
+		ResourceLocation recipeTypeId = ResourceLocation.tryParse(key);
 		if (recipeTypeId == null || !BuiltInRegistries.RECIPE_TYPE.containsKey(recipeTypeId)) {
 			return null;
 		}
-		return BuiltInRegistries.RECIPE_TYPE.getValue(recipeTypeId);
+		return BuiltInRegistries.RECIPE_TYPE.get(recipeTypeId);
 	}
 
 	private static BlockEntityType<?> resolveBlockEntityType(String key) {
 		if (key == null || key.isBlank()) {
 			return null;
 		}
-		Identifier id = Identifier.tryParse(key);
+		ResourceLocation id = ResourceLocation.tryParse(key);
 		if (id == null || !BuiltInRegistries.BLOCK_ENTITY_TYPE.containsKey(id)) {
 			return null;
 		}
-		return BuiltInRegistries.BLOCK_ENTITY_TYPE.getValue(id);
+		return BuiltInRegistries.BLOCK_ENTITY_TYPE.get(id);
 	}
 
 	private static Item resolveItem(String key) {
 		if (key == null || key.isBlank()) {
 			return null;
 		}
-		Identifier itemId = Identifier.tryParse(key);
+		ResourceLocation itemId = ResourceLocation.tryParse(key);
 		if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
 			return null;
 		}
-		return BuiltInRegistries.ITEM.getValue(itemId);
+		return BuiltInRegistries.ITEM.get(itemId);
 	}
 
 	private static JsonArray toJsonArray(List<String> values) {

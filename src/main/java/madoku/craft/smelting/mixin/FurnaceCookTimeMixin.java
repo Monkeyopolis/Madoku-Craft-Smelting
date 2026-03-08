@@ -1,10 +1,9 @@
 package madoku.craft.smelting.mixin;
 
 import madoku.craft.smelting.system.CustomSmeltingManager;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
-import net.minecraft.world.level.block.entity.FuelValues;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -14,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class FurnaceCookTimeMixin {
 	@Inject(method = "getTotalCookTime", at = @At("RETURN"), cancellable = true)
 	private static void madokuSmelting$adjustCookTime(
-		ServerLevel world,
+		Level world,
 		AbstractFurnaceBlockEntity furnace,
 		CallbackInfoReturnable<Integer> cir
 	) {
@@ -30,7 +29,7 @@ public abstract class FurnaceCookTimeMixin {
 	}
 
 	@Inject(method = "getBurnDuration", at = @At("RETURN"), cancellable = true)
-	private void madokuSmelting$adjustFuelDuration(FuelValues fuelValues, ItemStack stack, CallbackInfoReturnable<Integer> cir) {
+	private void madokuSmelting$adjustFuelDuration(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
 		if (!CustomSmeltingManager.isEnabled()) {
 			return;
 		}

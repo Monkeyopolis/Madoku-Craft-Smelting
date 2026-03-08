@@ -2,13 +2,13 @@ package madoku.craft.smelting.mixin;
 
 import madoku.craft.smelting.system.CustomSmeltingManager;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,7 +61,7 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 		}
 
 		@Override
-		public Optional<RecipeHolder<AbstractCookingRecipe>> getRecipeFor(SingleRecipeInput input, ServerLevel world) {
+		public Optional<RecipeHolder<AbstractCookingRecipe>> getRecipeFor(SingleRecipeInput input, Level world) {
 			Optional<? extends RecipeHolder<? extends AbstractCookingRecipe>> original = this.delegate.getRecipeFor(input, world);
 			if (original.isPresent()) {
 				return Optional.of(cast(original.get()));
@@ -69,7 +69,7 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 
 			ItemStack stack = input.item();
 			if (shouldFallback(stack)) {
-				return world.recipeAccess()
+				return world.getRecipeManager()
 					.getRecipeFor(RecipeType.SMELTING, input, world)
 					.map(FurnaceFallbackCachedCheck::cast);
 			}

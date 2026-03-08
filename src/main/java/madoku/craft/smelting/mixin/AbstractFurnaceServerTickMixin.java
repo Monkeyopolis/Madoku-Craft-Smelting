@@ -3,6 +3,7 @@ package madoku.craft.smelting.mixin;
 import madoku.craft.smelting.system.CustomSmeltingManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,12 +15,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class AbstractFurnaceServerTickMixin {
 	@Inject(method = "serverTick", at = @At("TAIL"))
 	private static void madokuSmelting$trackFurnaceScheduling(
-		ServerLevel level,
+		Level level,
 		BlockPos blockPos,
 		BlockState blockState,
 		AbstractFurnaceBlockEntity furnace,
 		CallbackInfo ci
 	) {
-		CustomSmeltingManager.onFurnaceServerTick(level, blockPos, blockState, furnace);
+		if (level instanceof ServerLevel serverLevel) {
+			CustomSmeltingManager.onFurnaceServerTick(serverLevel, blockPos, blockState, furnace);
+		}
 	}
 }

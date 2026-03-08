@@ -1,7 +1,7 @@
 ## Madoku Craft: Smelting
 
 Madoku Craft: Smelting is a configurable smelting system.
-It allows users to adjust smelting speed and fuel efficiency.
+It allows users to adjust furnace smelting speed and fuel efficiency.
 The system also allows for furnaces to accept additional inputs.
 
 ## Dependencies
