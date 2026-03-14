@@ -9,23 +9,23 @@ import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.scheduler.MadokuScheduler;
 import madoku.craft.smelting.mixin.AbstractFurnaceServerTickInvoker;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.SmokerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class CustomSmeltingManager {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CustomSmeltingManager.class);
+public final class MadokuSmeltingManager {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuSmeltingManager.class);
 
 	private static final String SMELTING_CONFIG_FOLDER_NAME = "madoku-craft-smelting";
 	private static final String SMELTING_CONFIG_FILE_NAME = "smelting";
@@ -67,20 +67,23 @@ public final class CustomSmeltingManager {
 	private static final double MIN_FUEL_EFFICIENCY = 0.1;
 	private static final double MAX_FUEL_EFFICIENCY = 10.0;
 
-	private static final CustomSmeltingConfig configuration = new CustomSmeltingConfig();
+	private static final MadokuSmeltingConfig configuration = new MadokuSmeltingConfig();
 	private static Map<RecipeType<?>, Set<Item>> additionalInputsByRecipeType = Map.of();
 	private static Map<BlockEntityType<?>, FurnaceBehavior> furnaceBehaviorByBlockEntityType = Map.of();
 	private static final Map<FurnaceKey, String> furnaceSchedulerIds = new HashMap<>();
 	private static final Set<FurnaceKey> scheduledFurnaces = new HashSet<>();
-	private static final Map<FurnaceKey, Long> lastProcessedGameplayTickByFurnace = new HashMap<>();
+	private static final Map<FurnaceKey, Long> lastProcessedMadokuTickByFurnace = new HashMap<>();
+	private static final Map<FurnaceKey, Long> lastProcessedGameTimeByFurnace = new HashMap<>();
+	private static long previousServerTickIncrement = 1L;
+	private static long currentServerTickIncrement = 1L;
 
-	private CustomSmeltingManager() {
+	private MadokuSmeltingManager() {
 	}
 
 	public static void initialize() {
-		MadokuScheduler.registerTaskHandler(TASK_TYPE_SMELTING_TICK, CustomSmeltingManager::runScheduledFurnaceTask);
+		MadokuScheduler.registerTaskHandler(TASK_TYPE_SMELTING_TICK, MadokuSmeltingManager::runScheduledFurnaceTask);
 		resetRuntimeState();
-		JsonObject smeltingDefaults = CustomSmeltingConfig.buildSmeltingDefaults();
+		JsonObject smeltingDefaults = MadokuSmeltingConfig.buildSmeltingDefaults();
 
 		try {
 			Path directory = StaticJsonSystem.getOrCreateGlobalSystemDirectory(SMELTING_CONFIG_FOLDER_NAME);
@@ -145,6 +148,11 @@ public final class CustomSmeltingManager {
 		resetRuntimeState();
 	}
 
+	public static void onServerTickIncrement(long tickIncrement) {
+		previousServerTickIncrement = Math.max(1L, currentServerTickIncrement);
+		currentServerTickIncrement = Math.max(1L, tickIncrement);
+	}
+
 	public static void onFurnaceServerTick(
 		ServerLevel level,
 		BlockPos blockPos,
@@ -166,7 +174,7 @@ public final class CustomSmeltingManager {
 		}
 
 		if (!shouldTrackFurnace(furnace, blockState)) {
-			lastProcessedGameplayTickByFurnace.remove(key);
+			lastProcessedMadokuTickByFurnace.remove(key);
 			return;
 		}
 
@@ -198,21 +206,28 @@ public final class CustomSmeltingManager {
 			return;
 		}
 
-		long nowGameplayTick = context.getGameplayTick();
-		long lastTick = lastProcessedGameplayTickByFurnace.getOrDefault(key, nowGameplayTick);
-		long tickDelta = nowGameplayTick - lastTick;
-		lastProcessedGameplayTickByFurnace.put(key, nowGameplayTick);
+		long nowMadokuTick = context.getNowTick();
+		long lastTick = lastProcessedMadokuTickByFurnace.getOrDefault(key, nowMadokuTick);
+		long tickDelta = nowMadokuTick - lastTick;
+		lastProcessedMadokuTickByFurnace.put(key, nowMadokuTick);
 
-		long extraTicks = Math.max(0L, tickDelta - 1L);
-		if (extraTicks > 0L) {
-			advanceSingleFurnaceTicks(level, blockPos, extraTicks);
+		long gameTime = level.getGameTime();
+		long lastProcessedGameTime = lastProcessedGameTimeByFurnace.getOrDefault(key, Long.MIN_VALUE);
+		if (lastProcessedGameTime != gameTime) {
+			lastProcessedGameTimeByFurnace.put(key, gameTime);
+			long expectedDeltaFromScheduling = Math.max(1L, previousServerTickIncrement);
+			long extraTicksFromClockJump = Math.max(0L, tickDelta - expectedDeltaFromScheduling);
+			long extraTicksFromSleep = Math.max(0L, currentServerTickIncrement - 1L);
+			long extraTicks = extraTicksFromClockJump + extraTicksFromSleep;
+			if (extraTicks > 0L) {
+				advanceSingleFurnaceTicks(level, blockPos, extraTicks);
+			}
 		}
 
 		BlockState currentState = level.getBlockState(blockPos);
-		if (shouldTrackFurnace(furnace, currentState)) {
-			requestFurnaceProcessing(server, key, 0L);
-		} else {
-			lastProcessedGameplayTickByFurnace.remove(key);
+		if (!shouldTrackFurnace(furnace, currentState)) {
+			lastProcessedMadokuTickByFurnace.remove(key);
+			lastProcessedGameTimeByFurnace.remove(key);
 		}
 	}
 
@@ -256,7 +271,7 @@ public final class CustomSmeltingManager {
 			Math.max(0L, delay),
 			TASK_TYPE_SMELTING_TICK,
 			new JsonObject(),
-			MadokuScheduler.ClockSource.GAMEPLAY
+			MadokuScheduler.TickDomain.TIME
 		);
 		return status == MadokuScheduler.EnqueueStatus.ACCEPTED
 			|| status == MadokuScheduler.EnqueueStatus.QUEUE_FULL;
@@ -316,13 +331,17 @@ public final class CustomSmeltingManager {
 		}
 		scheduledFurnaces.remove(key);
 		furnaceSchedulerIds.remove(key);
-		lastProcessedGameplayTickByFurnace.remove(key);
+		lastProcessedMadokuTickByFurnace.remove(key);
+		lastProcessedGameTimeByFurnace.remove(key);
 	}
 
 	private static void resetRuntimeState() {
 		furnaceSchedulerIds.clear();
 		scheduledFurnaces.clear();
-		lastProcessedGameplayTickByFurnace.clear();
+		lastProcessedMadokuTickByFurnace.clear();
+		lastProcessedGameTimeByFurnace.clear();
+		previousServerTickIncrement = 1L;
+		currentServerTickIncrement = 1L;
 	}
 
 	public static boolean isAdditionalInput(RecipeType<?> recipeType, ItemStack stack) {
@@ -462,7 +481,7 @@ public final class CustomSmeltingManager {
 			"minecraft:smoking",
 			80.0,
 			1.5,
-			CustomSmeltingConfig.buildDefaultSmokerAdditionalInputs()
+			MadokuSmeltingConfig.buildDefaultSmokerAdditionalInputs()
 		));
 		defaults.put("blast_furnace", buildFurnaceDefaultsObject(
 			"minecraft:blast_furnace",
@@ -470,7 +489,7 @@ public final class CustomSmeltingManager {
 			"minecraft:blasting",
 			80.0,
 			1.5,
-			CustomSmeltingConfig.buildDefaultBlastAdditionalInputs()
+			MadokuSmeltingConfig.buildDefaultBlastAdditionalInputs()
 		));
 		return defaults;
 	}

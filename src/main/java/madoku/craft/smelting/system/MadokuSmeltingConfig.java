@@ -7,7 +7,7 @@ import com.google.gson.JsonPrimitive;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CustomSmeltingConfig {
+public final class MadokuSmeltingConfig {
 	public boolean enableFeature = true;
 
 	public void resetToDefaults() {

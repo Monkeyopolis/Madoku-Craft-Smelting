@@ -7,7 +7,7 @@
 		"AbstractFurnaceServerTickInvoker",
 		"AbstractFurnaceServerTickMixin",
 		"FurnaceCookTimeMixin",
-		"FurnaceScreenHandlerMixin"
+		"FurnaceMenuMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

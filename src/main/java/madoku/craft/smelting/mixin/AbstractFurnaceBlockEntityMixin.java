@@ -1,6 +1,6 @@
 package madoku.craft.smelting.mixin;
 
-import madoku.craft.smelting.system.CustomSmeltingManager;
+import madoku.craft.smelting.system.MadokuSmeltingManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
@@ -37,7 +37,7 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 		RecipeType<? extends AbstractCookingRecipe> recipeType,
 		CallbackInfo ci
 	) {
-		if (!CustomSmeltingManager.shouldWrapRecipeType(recipeType)) {
+		if (!MadokuSmeltingManager.shouldWrapRecipeType(recipeType)) {
 			return;
 		}
 
@@ -82,11 +82,11 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 				return false;
 			}
 
-			if (!CustomSmeltingManager.isEnabled()) {
+			if (!MadokuSmeltingManager.isEnabled()) {
 				return false;
 			}
 
-			return CustomSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack);
+			return MadokuSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack);
 		}
 
 		@SuppressWarnings("unchecked")
