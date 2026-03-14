@@ -1,6 +1,6 @@
 package madoku.craft.smelting.mixin;
 
-import madoku.craft.smelting.system.CustomSmeltingManager;
+import madoku.craft.smelting.system.MadokuSmeltingManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
@@ -20,6 +20,6 @@ public abstract class AbstractFurnaceServerTickMixin {
 		AbstractFurnaceBlockEntity furnace,
 		CallbackInfo ci
 	) {
-		CustomSmeltingManager.onFurnaceServerTick(level, blockPos, blockState, furnace);
+		MadokuSmeltingManager.onFurnaceServerTick(level, blockPos, blockState, furnace);
 	}
 }
