@@ -1,10 +1,6 @@
 package madoku.craft.smelting;
 
-import madoku.craft.clock.MadokuClock;
-import madoku.craft.clock.MadokuTicks;
-import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.debug.MadokuDebug;
-import madoku.craft.scheduler.MadokuScheduler;
 import madoku.craft.smelting.system.MadokuSmeltingManager;
 import madoku.craft.time.MadokuSleep;
 import net.fabricmc.api.ModInitializer;
@@ -38,32 +34,15 @@ public class MadokuCraftSmelting implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		StaticJsonSystem.initialize();
-		MadokuDebug.initialize();
 		MadokuSmeltingManager.initialize();
 
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuDebug.resetSession();
-			MadokuClock.reset();
-			MadokuSleep.reset();
-			MadokuScheduler.reset();
-			MadokuScheduler.loadPersistedData(server);
-			MadokuSmeltingManager.onServerStarted();
-		});
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> MadokuSmeltingManager.onServerStarted());
 
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			MadokuScheduler.savePersistedData(server);
-			MadokuClock.reset();
-			MadokuSleep.reset();
-			MadokuScheduler.reset();
-			MadokuSmeltingManager.onServerStopped();
-		});
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> MadokuSmeltingManager.onServerStopped());
 
-		ServerTickEvents.END_SERVER_TICK.register(server -> {
+		ServerTickEvents.START_SERVER_TICK.register(server -> {
 			long tickIncrement = MadokuSleep.getTickIncrement(server);
 			MadokuSmeltingManager.onServerTickIncrement(tickIncrement);
-			MadokuTicks.advance(server, tickIncrement);
-			MadokuScheduler.autosavePersistedData(server);
 		});
 
 		debugInfo("Madoku Craft Smelting ready.");
