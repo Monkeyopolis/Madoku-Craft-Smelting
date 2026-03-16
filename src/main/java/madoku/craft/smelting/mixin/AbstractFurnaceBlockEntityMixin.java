@@ -37,12 +37,16 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 		RecipeType<? extends AbstractCookingRecipe> recipeType,
 		CallbackInfo ci
 	) {
-		if (!MadokuSmeltingManager.shouldWrapRecipeType(recipeType)) {
+		if (!shouldWrap(recipeType)) {
 			return;
 		}
 
 		RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> original = this.quickCheck;
 		this.quickCheck = new FurnaceFallbackCachedCheck(original, blockEntityType, recipeType);
+	}
+
+	private boolean shouldWrap(RecipeType<? extends AbstractCookingRecipe> recipeType) {
+		return MadokuSmeltingManager.shouldWrapRecipeType(recipeType);
 	}
 
 	private static final class FurnaceFallbackCachedCheck implements RecipeManager.CachedCheck<SingleRecipeInput, AbstractCookingRecipe> {
