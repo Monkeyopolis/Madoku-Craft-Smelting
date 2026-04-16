@@ -68,25 +68,17 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 			}
 
 			ItemStack stack = input.item();
-			if (shouldFallback(stack)) {
-				return world.recipeAccess()
-					.getRecipeFor(RecipeType.SMELTING, input, world)
-					.map(FurnaceFallbackCachedCheck::cast);
+			if (stack.isEmpty() || !MadokuSmeltingManager.isEnabled()) {
+				return Optional.empty();
 			}
 
-			return Optional.empty();
-		}
-
-		private boolean shouldFallback(ItemStack stack) {
-			if (stack.isEmpty()) {
-				return false;
+			if (!MadokuSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack)) {
+				return Optional.empty();
 			}
 
-			if (!MadokuSmeltingManager.isEnabled()) {
-				return false;
-			}
-
-			return MadokuSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack);
+			return world.recipeAccess()
+				.getRecipeFor(RecipeType.SMELTING, input, world)
+				.map(FurnaceFallbackCachedCheck::cast);
 		}
 
 		@SuppressWarnings("unchecked")

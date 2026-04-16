@@ -4,6 +4,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AbstractFurnaceBlockEntityMixin",
+		"AbstractFurnaceCookTimeAccessor",
 		"AbstractFurnaceServerTickInvoker",
 		"AbstractFurnaceServerTickMixin",
 		"FurnaceCookTimeMixin",
