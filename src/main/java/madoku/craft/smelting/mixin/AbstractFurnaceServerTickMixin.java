@@ -22,6 +22,15 @@ public abstract class AbstractFurnaceServerTickMixin {
 		CallbackInfo ci
 	) {
 		if (level instanceof ServerLevel serverLevel) {
+			if (MadokuSmeltingManager.isEnabled() && furnace != null) {
+				int currentTotal = ((AbstractFurnaceCookTimeAccessor) furnace).madokuSmelting$getCookingTotalTime();
+				int desiredTotal = MadokuSmeltingManager.getCookTimeTicks(furnace, currentTotal);
+				if (currentTotal > 0 && desiredTotal > 0 && currentTotal != desiredTotal) {
+					((AbstractFurnaceCookTimeAccessor) furnace).madokuSmelting$setCookingTotalTime(desiredTotal);
+					furnace.setChanged();
+				}
+			}
+
 			MadokuSmeltingManager.onFurnaceServerTick(serverLevel, blockPos, blockState, furnace);
 		}
 	}

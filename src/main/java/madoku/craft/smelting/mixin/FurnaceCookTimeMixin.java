@@ -17,7 +17,7 @@ public abstract class FurnaceCookTimeMixin {
 		AbstractFurnaceBlockEntity furnace,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (!MadokuSmeltingManager.isEnabled()) {
+		if (!MadokuSmeltingManager.isEnabled() || furnace == null) {
 			return;
 		}
 
@@ -29,11 +29,18 @@ public abstract class FurnaceCookTimeMixin {
 	}
 
 	@Inject(method = "getBurnDuration", at = @At("RETURN"), cancellable = true)
-	private void madokuSmelting$adjustFuelDuration(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
+	private void madokuSmelting$adjustFuelDuration(
+		ItemStack stack,
+		CallbackInfoReturnable<Integer> cir
+	) {
+		if (!MadokuSmeltingManager.isEnabled() || stack == null || stack.isEmpty()) {
+			return;
+		}
+
 		int original = cir.getReturnValue();
-		AbstractFurnaceBlockEntity self = (AbstractFurnaceBlockEntity) (Object) this;
-		int adjusted = MadokuSmeltingManager.getAdjustedFuelTicks(self, stack, original);
-		if (adjusted != original) {
+		AbstractFurnaceBlockEntity furnace = (AbstractFurnaceBlockEntity) (Object) this;
+		int adjusted = MadokuSmeltingManager.getAdjustedFuelTicks(furnace, stack, original);
+		if (adjusted > 0 && adjusted != original) {
 			cir.setReturnValue(adjusted);
 		}
 	}

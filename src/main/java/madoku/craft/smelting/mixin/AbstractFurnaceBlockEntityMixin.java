@@ -37,16 +37,12 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 		RecipeType<? extends AbstractCookingRecipe> recipeType,
 		CallbackInfo ci
 	) {
-		if (!shouldWrap(recipeType)) {
+		if (!MadokuSmeltingManager.shouldWrapRecipeType(recipeType)) {
 			return;
 		}
 
 		RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> original = this.quickCheck;
 		this.quickCheck = new FurnaceFallbackCachedCheck(original, blockEntityType, recipeType);
-	}
-
-	private boolean shouldWrap(RecipeType<? extends AbstractCookingRecipe> recipeType) {
-		return MadokuSmeltingManager.shouldWrapRecipeType(recipeType);
 	}
 
 	private static final class FurnaceFallbackCachedCheck implements RecipeManager.CachedCheck<SingleRecipeInput, AbstractCookingRecipe> {
@@ -72,25 +68,17 @@ public abstract class AbstractFurnaceBlockEntityMixin {
 			}
 
 			ItemStack stack = input.item();
-			if (shouldFallback(stack)) {
-				return world.getRecipeManager()
-					.getRecipeFor(RecipeType.SMELTING, input, world)
-					.map(FurnaceFallbackCachedCheck::cast);
+			if (stack.isEmpty() || !MadokuSmeltingManager.isEnabled()) {
+				return Optional.empty();
 			}
 
-			return Optional.empty();
-		}
-
-		private boolean shouldFallback(ItemStack stack) {
-			if (stack.isEmpty()) {
-				return false;
+			if (!MadokuSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack)) {
+				return Optional.empty();
 			}
 
-			if (!MadokuSmeltingManager.isEnabled()) {
-				return false;
-			}
-
-			return MadokuSmeltingManager.isAdditionalInput(this.blockEntityType, this.recipeType, stack);
+			return world.getRecipeManager()
+				.getRecipeFor(RecipeType.SMELTING, input, world)
+				.map(FurnaceFallbackCachedCheck::cast);
 		}
 
 		@SuppressWarnings("unchecked")
