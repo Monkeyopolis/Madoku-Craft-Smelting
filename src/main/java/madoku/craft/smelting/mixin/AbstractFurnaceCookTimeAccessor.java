@@ -7,8 +7,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(AbstractFurnaceBlockEntity.class)
 public interface AbstractFurnaceCookTimeAccessor {
 	@Accessor("cookingTotalTime")
-	int madokuCraftSmelting$getCookingTotalTime();
+	int madokuCraft$getCookingTotalTime();
 
 	@Accessor("cookingTotalTime")
-	void madokuCraftSmelting$setCookingTotalTime(int value);
+	void madokuCraft$setCookingTotalTime(int value);
 }

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(AbstractFurnaceBlockEntity.class)
 public interface AbstractFurnaceServerTickInvoker {
 	@Invoker("serverTick")
-	static void madokuCraftSmelting$invokeServerTick(
+	static void madokuCraft$invokeServerTick(
 		ServerLevel level,
 		BlockPos blockPos,
 		BlockState blockState,
