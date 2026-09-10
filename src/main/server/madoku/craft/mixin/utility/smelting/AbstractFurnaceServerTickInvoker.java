@@ -1,4 +1,4 @@
-package madoku.craft.smelting.mixin;
+package madoku.craft.mixin.utility.smelting;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -19,3 +19,5 @@ public interface AbstractFurnaceServerTickInvoker {
 		throw new AssertionError("Invoker not transformed");
 	}
 }
+
+

@@ -1,4 +1,4 @@
-package madoku.craft.smelting.mixin;
+package madoku.craft.mixin.utility.smelting;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
@@ -7,6 +7,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.level.Level;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Final;
@@ -24,7 +25,7 @@ public abstract class FurnaceMenuMixin {
 
 	@Shadow
 	@Final
-	private RecipeType<? extends AbstractCookingRecipe> recipeType;
+	private RecipeBookType recipeBookType;
 
 	@Shadow
 	@Final
@@ -62,7 +63,8 @@ public abstract class FurnaceMenuMixin {
 
 	@Inject(method = "canSmelt", at = @At("RETURN"), cancellable = true)
 	private void madokuCraft$allowShiftClickForAddedCookingRecipes(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
-		if (cir.getReturnValue() || stack == null || stack.isEmpty() || this.level == null || this.recipeType == null) {
+		RecipeType<? extends AbstractCookingRecipe> recipeType = resolveRecipeType();
+		if (cir.getReturnValue() || stack == null || stack.isEmpty() || this.level == null || recipeType == null) {
 			return;
 		}
 		if (!(this.level.recipeAccess() instanceof RecipeManager recipeManager)) {
@@ -70,10 +72,25 @@ public abstract class FurnaceMenuMixin {
 		}
 
 		boolean hasRecipe = recipeManager
-			.getRecipeFor(this.recipeType, new SingleRecipeInput(stack), this.level)
+			.getRecipeFor(recipeType, new SingleRecipeInput(stack), this.level)
 			.isPresent();
 		if (hasRecipe) {
 			cir.setReturnValue(true);
 		}
 	}
+
+	private RecipeType<? extends AbstractCookingRecipe> resolveRecipeType() {
+		if (this.recipeBookType == RecipeBookType.FURNACE) {
+			return RecipeType.SMELTING;
+		}
+		if (this.recipeBookType == RecipeBookType.SMOKER) {
+			return RecipeType.SMOKING;
+		}
+		if (this.recipeBookType == RecipeBookType.BLAST_FURNACE) {
+			return RecipeType.BLASTING;
+		}
+		return null;
+	}
 }
+
+

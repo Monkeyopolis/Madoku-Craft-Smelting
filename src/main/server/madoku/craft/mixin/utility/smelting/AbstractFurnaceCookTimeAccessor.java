@@ -1,4 +1,4 @@
-package madoku.craft.smelting.mixin;
+package madoku.craft.mixin.utility.smelting;
 
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,3 +12,5 @@ public interface AbstractFurnaceCookTimeAccessor {
 	@Accessor("cookingTotalTime")
 	void madokuCraft$setCookingTotalTime(int value);
 }
+
+

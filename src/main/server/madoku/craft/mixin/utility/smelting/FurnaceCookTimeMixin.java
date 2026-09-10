@@ -1,7 +1,6 @@
-package madoku.craft.smelting.mixin;
+package madoku.craft.mixin.utility.smelting;
 
-import madoku.craft.debug.MadokuDebug;
-import madoku.craft.smelting.system.MadokuSmeltingManager;
+import madoku.craft.java.utility.smelting.SmeltingAPIManager;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.FuelValues;
@@ -19,21 +18,12 @@ public abstract class FurnaceCookTimeMixin {
 		AbstractFurnaceBlockEntity furnace,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (!MadokuSmeltingManager.isEnabled() || furnace == null) {
+		if (!SmeltingAPIManager.isEnabled() || furnace == null) {
 			return;
 		}
 
 		int original = cir.getReturnValue();
-		int configured = MadokuSmeltingManager.getCookTimeTicks(furnace, original);
-		if (MadokuDebug.shouldEmit(MadokuDebug.Domain.SMELTING, "smelting.cook_time")) {
-			MadokuDebug.event("smelting.cook_time", MadokuDebug.Domain.SMELTING)
-				.side(MadokuDebug.Side.SERVER)
-				.subject("furnace:" + MadokuSmeltingManager.describeRecipeType(furnace.getRecipeUsed() == null ? null : furnace.getRecipeUsed().value().getType()))
-				.field("furnace", furnace.getClass().getSimpleName())
-				.field("original_ticks", original)
-				.field("configured_ticks", configured)
-				.log();
-		}
+		int configured = SmeltingAPIManager.getCookTimeTicks(furnace, original);
 		if (configured > 0 && configured != original) {
 			cir.setReturnValue(configured);
 		}
@@ -45,24 +35,20 @@ public abstract class FurnaceCookTimeMixin {
 		ItemStack stack,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (!MadokuSmeltingManager.isEnabled() || stack == null || stack.isEmpty()) {
+		if (!SmeltingAPIManager.isEnabled() || stack == null || stack.isEmpty()) {
 			return;
 		}
 
 		int original = cir.getReturnValue();
 		AbstractFurnaceBlockEntity furnace = (AbstractFurnaceBlockEntity) (Object) this;
-		int adjusted = MadokuSmeltingManager.getAdjustedFuelTicks(furnace, stack, original);
-		if (MadokuDebug.shouldEmit(MadokuDebug.Domain.SMELTING, "smelting.fuel_adjusted")) {
-			MadokuDebug.event("smelting.fuel_adjusted", MadokuDebug.Domain.SMELTING)
-				.side(MadokuDebug.Side.SERVER)
-				.subject("furnace:" + furnace.getClass().getSimpleName())
-				.field("fuel_item", stack.getItem().toString())
-				.field("input_ticks", original)
-				.field("adjusted_ticks", adjusted)
-				.log();
-		}
+		int adjusted = SmeltingAPIManager.getAdjustedFuelTicks(
+			furnace,
+			stack,
+			SmeltingAPIManager.applyFuelAdapters(stack, original)
+		);
 		if (adjusted > 0 && adjusted != original) {
 			cir.setReturnValue(adjusted);
 		}
 	}
 }
+
