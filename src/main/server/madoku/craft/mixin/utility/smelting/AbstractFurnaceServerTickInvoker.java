@@ -1,4 +1,4 @@
-package madoku.craft.smelting.mixin;
+package madoku.craft.mixin.utility.smelting;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(AbstractFurnaceBlockEntity.class)
 public interface AbstractFurnaceServerTickInvoker {
 	@Invoker("serverTick")
-	static void madokuSmelting$invokeServerTick(
+	static void madokuCraft$invokeServerTick(
 		ServerLevel level,
 		BlockPos blockPos,
 		BlockState blockState,
@@ -19,3 +19,5 @@ public interface AbstractFurnaceServerTickInvoker {
 		throw new AssertionError("Invoker not transformed");
 	}
 }
+
+

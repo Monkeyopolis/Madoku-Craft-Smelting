@@ -1,16 +1,23 @@
-## Madoku Craft: Smelting
+## Overview:
 
-Madoku Craft: Smelting is a configurable smelting system.
-It allows users to adjust furnace smelting speed and fuel efficiency.
-The system also allows for furnaces to accept additional inputs.
+Madoku Craft: Utility adds smaller mechanics that don't belong as a standalone module.
+You can customize these mechanics through the config files.
 
-## Dependencies
+## Dependencies:
 
 - Fabric API
-- Madoku Craft API
+- Madoku Craft: Core
 
-## Implementation
+## Features:
 
-This MOD by default increases the smelting speed for all furnaces.
-Smokers and Blast Furnaces are now more fuel efficient.
-You can customize these features in the CONFIG files.
+**Smelting:**
+
+- Furnace smelting continues to progress even you're not near them.
+- Sleeping also fowards the progress, allowing faster smelting times.
+- By default, furnace smelting speeds were increased.
+
+**Music:**
+
+- The music system allows you to adjust which in-game music plays.
+- You can add and remove certain songs.
+- You can also adjust how often they appear.

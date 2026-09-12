@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "madoku.craft.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "utility.smelting.AbstractFurnaceCookTimeAccessor",
+    "utility.smelting.AbstractFurnaceServerTickInvoker",
+    "utility.smelting.AbstractFurnaceServerTickMixin",
+    "utility.smelting.FurnaceCookTimeMixin",
+    "utility.smelting.FurnaceMenuMixin"
+  ],
+	"client": ["music.MusicManagerMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

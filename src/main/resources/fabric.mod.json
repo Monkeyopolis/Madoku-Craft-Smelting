@@ -1,32 +1,22 @@
 {
-	"schemaVersion": 1,
-	"id": "madoku-craft-smelting",
-	"version": "${version}",
-	"name": "Madoku Craft: Smelting",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/madoku-craft-smelting/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"madoku.craft.smelting.MadokuCraftSmelting"
-		]
-	},
-	"mixins": [
-		"madoku-craft-smelting.mixins.json"
-	],
-	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
-		"fabric-api": "*",
-		"madoku-craft-api": ">=${madoku_craft_api_mod_version}"
-	}
+  "schemaVersion": 1,
+  "id": "madoku-craft-utility",
+  "version": "${version}",
+  "name": "Madoku Craft: Utility",
+  "description": "A configurable quality of life overhaul mod.",
+  "authors": ["Monkeyopolis"],
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["madoku.craft.java.utility.MadokuUtilityInitializer"],
+    "client": ["madoku.craft.java.utility.MadokuUtilityClientInitializer"]
+  },
+  "mixins": ["madoku-craft-utility.mixins.json"],
+  "depends": {
+    "fabricloader": "${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "${fabric_api_version}",
+    "madoku-craft-core": "*"
+  }
 }
